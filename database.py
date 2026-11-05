@@ -46,8 +46,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return hash_password(plain_password) == hashed_password
 
 def get_mysql_connection(include_db: bool = True):
-    """Attempts to connect to MySQL if PyMySQL is available."""
-    if pymysql is None:
+    """Attempts to connect to MySQL if PyMySQL is available with short timeout."""
+    if pymysql is None or DB_PASSWORD == "your_mysql_password":
         return None
     try:
         conn = pymysql.connect(
@@ -57,6 +57,7 @@ def get_mysql_connection(include_db: bool = True):
             password=DB_PASSWORD,
             database=DB_NAME if include_db else None,
             cursorclass=pymysql.cursors.DictCursor,
+            connect_timeout=1,
             autocommit=True
         )
         return conn
@@ -64,9 +65,12 @@ def get_mysql_connection(include_db: bool = True):
         return None
 
 def get_sqlite_connection():
-    """Fallback local database connection using built-in sqlite3."""
-    conn = sqlite3.connect(SQLITE_DB_PATH)
+    """High-performance SQLite connection with WAL journal mode and busy timeout."""
+    conn = sqlite3.connect(SQLITE_DB_PATH, timeout=15.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute("PRAGMA busy_timeout=5000;")
     return conn
 
 # Flag to remember if MySQL is working
@@ -114,7 +118,7 @@ def init_db():
                 pass
 
     # Fallback to local SQLite if MySQL isn't connected
-    print("[Database] MySQL not reachable. Using local SQLite database (chatbot_local.db) for zero-downtime development.")
+    print("[Database] MySQL not reachable. Using local SQLite database (chatbot_local.db) in high-speed WAL mode.")
     MYSQL_ACTIVE = False
     sqlite_conn = get_sqlite_connection()
     with sqlite_conn:
@@ -138,13 +142,23 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
         """)
+        # Ensure fast lookup indexes
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_userid ON chat_history(user_id);")
     sqlite_conn.close()
     return True
 
 # --- User Management Functions ---
 
 def create_user(username: str, email: str, password: str):
-    """Registers a new user."""
+    """Registers a new user with compulsory password. If user already exists with matching password, logs them in."""
+    email = email.strip().lower()
+    if not email:
+        return None, "Email address is required."
+    if not password or len(password.strip()) < 4:
+        return None, "Password is required (minimum 4 characters)."
+
+    password = password.strip()
     hashed = hash_password(password)
 
     if MYSQL_ACTIVE:
@@ -152,63 +166,118 @@ def create_user(username: str, email: str, password: str):
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    cursor.execute("SELECT id FROM users WHERE email = %s;", (email,))
-                    if cursor.fetchone():
-                        return None, "Email is already registered"
+                    cursor.execute("SELECT id, username, email, password_hash FROM users WHERE email = %s;", (email,))
+                    existing = cursor.fetchone()
+                    if existing:
+                        dummy_hash = hash_password(f"oauth_user_{email}")
+                        if existing["password_hash"] == dummy_hash or verify_password(password, existing["password_hash"]):
+                            cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s;", (hashed, existing["id"]))
+                            return {"id": existing["id"], "username": existing["username"], "email": existing["email"]}, None
+                        return None, "Email is already registered. Please sign in."
                     cursor.execute(
                         "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s);",
-                        (username, email, hashed)
+                        (username or email.split("@")[0].title(), email, hashed)
+                    )
+                    return {"id": cursor.lastrowid, "username": username, "email": email}, None
+            except Exception as e:
+                print(f"[MySQL Create Error]: {e}")
+            finally:
+                conn.close()
+
+    # SQLite Fast Path
+    conn = get_sqlite_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, email, password_hash FROM users WHERE email = ?;", (email,))
+        row = cursor.fetchone()
+        if row:
+            dummy_hash = hash_password(f"oauth_user_{email}")
+            if row["password_hash"] == dummy_hash or verify_password(password, row["password_hash"]):
+                with conn:
+                    cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?;", (hashed, row["id"]))
+                return {"id": row["id"], "username": row["username"], "email": row["email"]}, None
+            return None, "Email is already registered. Please sign in."
+        with conn:
+            cursor.execute(
+                "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?);",
+                (username or email.split("@")[0].title(), email, hashed)
+            )
+            return {"id": cursor.lastrowid, "username": username or email.split("@")[0].title(), "email": email}, None
+    finally:
+        conn.close()
+
+def create_or_get_oauth_user(username: str, email: str, password: str):
+    """Registers or logs in a user via Google or Phone with compulsory password."""
+    email = email.strip().lower()
+    if not email:
+        return None, "Account identifier (email or phone) is required."
+    if not password or len(password.strip()) < 4:
+        return None, "Password is required (minimum 4 characters)."
+
+    password = password.strip()
+    hashed = hash_password(password)
+
+    if MYSQL_ACTIVE:
+        conn = get_mysql_connection()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id, username, email, password_hash FROM users WHERE email = %s;", (email,))
+                    existing = cursor.fetchone()
+                    if existing:
+                        dummy_hash = hash_password(f"oauth_user_{email}")
+                        if existing["password_hash"] == dummy_hash:
+                            cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s;", (hashed, existing["id"]))
+                            return {"id": existing["id"], "username": existing["username"], "email": existing["email"]}, None
+                        if not verify_password(password, existing["password_hash"]):
+                            return None, "Incorrect password for this account. Please enter your existing password or use 'Forgot?'."
+                        return {"id": existing["id"], "username": existing["username"], "email": existing["email"]}, None
+                    # Create new account
+                    cursor.execute(
+                        "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s);",
+                        (username or email.split("@")[0].title(), email, hashed)
                     )
                     return {"id": cursor.lastrowid, "username": username, "email": email}, None
             finally:
                 conn.close()
 
-    # SQLite Fallback
+    # SQLite Fast Path
     conn = get_sqlite_connection()
     try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, email, password_hash FROM users WHERE email = ?;", (email,))
+        row = cursor.fetchone()
+        if row:
+            dummy_hash = hash_password(f"oauth_user_{email}")
+            if row["password_hash"] == dummy_hash:
+                with conn:
+                    cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?;", (hashed, row["id"]))
+                return {"id": row["id"], "username": row["username"], "email": row["email"]}, None
+            if not verify_password(password, row["password_hash"]):
+                return None, "Incorrect password for this account. Please enter your existing password or use 'Forgot?'."
+            return {"id": row["id"], "username": row["username"], "email": row["email"]}, None
+
+        # Create new account
         with conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM users WHERE email = ?;", (email,))
-            if cursor.fetchone():
-                return None, "Email is already registered"
             cursor.execute(
                 "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?);",
-                (username, email, hashed)
+                (username or email.split("@")[0].title(), email, hashed)
             )
-            return {"id": cursor.lastrowid, "username": username, "email": email}, None
+            return {"id": cursor.lastrowid, "username": username or email.split("@")[0].title(), "email": email}, None
     finally:
         conn.close()
 
-def create_or_get_oauth_user(username: str, email: str, password: str = None):
-    """Gets existing user by email or registers them with their chosen password."""
-    existing = get_user_by_email(email)
-    pass_to_use = password.strip() if password and password.strip() else f"oauth_user_{email}"
-    
-    if existing:
-        if password and password.strip():
-            hashed = hash_password(pass_to_use)
-            if MYSQL_ACTIVE:
-                conn = get_mysql_connection()
-                if conn:
-                    try:
-                        with conn.cursor() as cursor:
-                            cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s;", (hashed, existing["id"]))
-                    finally:
-                        conn.close()
-            else:
-                conn = get_sqlite_connection()
-                try:
-                    with conn:
-                        conn.cursor().execute("UPDATE users SET password_hash = ? WHERE id = ?;", (hashed, existing["id"]))
-                finally:
-                    conn.close()
-        return {"id": existing["id"], "username": existing["username"], "email": existing["email"]}, None
-    
-    # Create new user with their chosen password
-    return create_user(username, email, pass_to_use)
-
 def authenticate_user(email: str, password: str):
-    """Verifies user login credentials."""
+    """Verifies user login credentials with compulsory password."""
+    email = email.strip().lower()
+    if not email:
+        return None, "Email address is required."
+    if not password:
+        return None, "Password is required."
+
+    password = password.strip()
+    hashed = hash_password(password)
+
     if MYSQL_ACTIVE:
         conn = get_mysql_connection()
         if conn:
@@ -216,26 +285,73 @@ def authenticate_user(email: str, password: str):
                 with conn.cursor() as cursor:
                     cursor.execute("SELECT id, username, email, password_hash FROM users WHERE email = %s;", (email,))
                     user = cursor.fetchone()
-                    if not user or not verify_password(password, user["password_hash"]):
-                        return None, "Invalid email or password"
+                    if not user:
+                        return None, "Account not found with this email. Please click 'Create Account' to register."
+                    dummy_hash = hash_password(f"oauth_user_{email}")
+                    if user["password_hash"] == dummy_hash:
+                        # Upgrade account from legacy dummy oauth password
+                        cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s;", (hashed, user["id"]))
+                        return {"id": user["id"], "username": user["username"], "email": user["email"]}, None
+                    if not verify_password(password, user["password_hash"]):
+                        return None, "Incorrect password. Please try again or use 'Forgot?'."
                     return {"id": user["id"], "username": user["username"], "email": user["email"]}, None
             finally:
                 conn.close()
 
-    # SQLite Fallback
+    # SQLite Fast Path
     conn = get_sqlite_connection()
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT id, username, email, password_hash FROM users WHERE email = ?;", (email,))
         row = cursor.fetchone()
-        if not row or not verify_password(password, row["password_hash"]):
-            return None, "Invalid email or password"
+        if not row:
+            return None, "Account not found with this email. Please click 'Create Account' to register."
+        dummy_hash = hash_password(f"oauth_user_{email}")
+        if row["password_hash"] == dummy_hash:
+            # Upgrade account from legacy dummy oauth password
+            with conn:
+                cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?;", (hashed, row["id"]))
+            return {"id": row["id"], "username": row["username"], "email": row["email"]}, None
+        if not verify_password(password, row["password_hash"]):
+            return None, "Incorrect password. Please try again or use 'Forgot?'."
         return {"id": row["id"], "username": row["username"], "email": row["email"]}, None
+    finally:
+        conn.close()
+
+def reset_user_password(email: str, new_password: str):
+    """Updates the user password hash."""
+    email = email.strip().lower()
+    if not email or not new_password or len(new_password.strip()) < 4:
+        return False, "Valid email and new password (min 4 characters) are required."
+
+    hashed = hash_password(new_password.strip())
+    if MYSQL_ACTIVE:
+        conn = get_mysql_connection()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s;", (hashed, email))
+                    if cursor.rowcount > 0:
+                        return True, None
+                    return False, "No account found with this email."
+            finally:
+                conn.close()
+
+    # SQLite Fast Path
+    conn = get_sqlite_connection()
+    try:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET password_hash = ? WHERE email = ?;", (hashed, email))
+            if cursor.rowcount > 0:
+                return True, None
+            return False, "No account found with this email."
     finally:
         conn.close()
 
 def get_user_by_email(email: str):
     """Retrieves user info by email."""
+    email = email.strip().lower()
     if MYSQL_ACTIVE:
         conn = get_mysql_connection()
         if conn:
@@ -246,7 +362,7 @@ def get_user_by_email(email: str):
             finally:
                 conn.close()
 
-    # SQLite Fallback
+    # SQLite Fast Path
     conn = get_sqlite_connection()
     try:
         cursor = conn.cursor()
@@ -271,10 +387,12 @@ def save_chat_message(user_id: int | None, role: str, message: str):
                         (user_id, role, message, ist_time)
                     )
                 return True
+            except Exception:
+                pass
             finally:
                 conn.close()
 
-    # SQLite Fallback
+    # SQLite Fast Path
     conn = get_sqlite_connection()
     try:
         with conn:
@@ -310,7 +428,7 @@ def get_chat_history(user_id: int | None, limit: int = 30):
             finally:
                 conn.close()
 
-    # SQLite Fallback
+    # SQLite Fast Path
     conn = get_sqlite_connection()
     try:
         cursor = conn.cursor()
@@ -328,39 +446,20 @@ def get_chat_history(user_id: int | None, limit: int = 30):
         result = []
         for r in rows:
             row_dict = dict(r)
-            raw_ts = str(row_dict.get("created_at") or "")
-            formatted_time = raw_ts
-            try:
-                if " " in raw_ts:
-                    time_part = raw_ts.split(" ")[1]
-                    parts = time_part.split(":")
-                    h, m = int(parts[0]), int(parts[1])
-                    period = "AM" if h < 12 else "PM"
-                    h12 = h % 12
-                    if h12 == 0:
-                        h12 = 12
-                    formatted_time = f"{h12:02d}:{m:02d} {period}"
-                elif ":" in raw_ts:
-                    parts = raw_ts.split(":")
-                    h, m = int(parts[0]), int(parts[1])
-                    period = "AM" if h < 12 else "PM"
-                    h12 = h % 12
-                    if h12 == 0:
-                        h12 = 12
-                    formatted_time = f"{h12:02d}:{m:02d} {period}"
-            except Exception:
-                formatted_time = raw_ts
-            row_dict["created_at"] = formatted_time
+            raw_time = row_dict.get("created_at")
+            if raw_time and len(str(raw_time)) >= 16:
+                try:
+                    dt = datetime.strptime(str(raw_time)[:19], "%Y-%m-%d %H:%M:%S")
+                    row_dict["created_at"] = dt.strftime("%I:%M %p")
+                except Exception:
+                    pass
             result.append(row_dict)
         return result
-    except Exception as e:
-        print(f"[DB Error fetching history]: {e}")
-        return []
     finally:
         conn.close()
 
 def clear_chat_history(user_id: int | None):
-    """Clears chat history."""
+    """Deletes all messages for a specific user or anonymous user."""
     if MYSQL_ACTIVE:
         conn = get_mysql_connection()
         if conn:
@@ -374,7 +473,7 @@ def clear_chat_history(user_id: int | None):
             finally:
                 conn.close()
 
-    # SQLite Fallback
+    # SQLite Fast Path
     conn = get_sqlite_connection()
     try:
         with conn:
@@ -383,5 +482,8 @@ def clear_chat_history(user_id: int | None):
             else:
                 conn.cursor().execute("DELETE FROM chat_history WHERE user_id IS NULL;")
         return True
+    except Exception as e:
+        print(f"[DB Error clearing history]: {e}")
+        return False
     finally:
         conn.close()

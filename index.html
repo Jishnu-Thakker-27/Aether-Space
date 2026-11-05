@@ -47,61 +47,57 @@
           </button>
         </header>
 
-        <!-- Welcome Clay Hero Banner -->
-        <section class="clay-surface rounded-3xl relative overflow-hidden" style="padding: 20px; margin-bottom: 16px;">
+        <!-- Welcome Clay Hero Banner (Centered Sign-In Focus) -->
+        <section class="clay-surface rounded-3xl relative overflow-hidden flex flex-col items-center text-center" style="padding: 22px 18px 20px 18px; margin-bottom: 16px;">
           <div style="position: absolute; top: -48px; right: -48px; width: 144px; height: 144px; background: rgba(255,255,255,0.2); border-radius: 9999px; filter: blur(24px); pointer-events: none;"></div>
           
-          <div class="flex items-center gap-4">
-            <!-- Clay Avatar -->
-            <div class="relative shrink-0" style="width: 80px; height: 80px;">
-              <div class="clay-surface-sm flex items-center justify-center overflow-hidden" style="width: 80px; height: 80px; border-radius: 16px; padding: 6px; border: 1px solid rgba(255,255,255,0.4);">
-                <div class="w-full h-full flex items-center justify-center relative" style="border-radius: 12px; background: linear-gradient(135deg, #8faec2, #607e94); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
-                  <!-- Character Head -->
-                  <div class="relative flex items-center justify-center" style="width: 48px; height: 48px; border-radius: 9999px; background-color: #f3d2be; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <!-- Hair -->
-                    <div class="absolute rounded-t-full" style="top: -6px; width: 44px; height: 24px; background-color: #364958;"></div>
-                    <!-- Cheerful Eyes -->
-                    <div class="flex justify-between" style="width: 28px; z-index: 10; padding-top: 4px;">
-                      <div style="width: 6px; height: 6px; background-color: #2c3d4a; border-radius: 9999px; box-shadow: 0 1px 1px rgba(0,0,0,0.2);"></div>
-                      <div style="width: 6px; height: 6px; background-color: #2c3d4a; border-radius: 9999px; box-shadow: 0 1px 1px rgba(0,0,0,0.2);"></div>
-                    </div>
-                    <!-- Soft Smile -->
-                    <div class="absolute" style="bottom: 10px; width: 12px; height: 6px; border-bottom: 2px solid #2c3d4a; border-radius: 9999px;"></div>
-                    <!-- Clay Headphone Arc -->
-                    <div class="absolute pointer-events-none" style="top: -10px; width: 56px; height: 36px; border-top: 4px solid #517188; border-radius: 9999px;"></div>
-                    <!-- Headphone Pads -->
-                    <div class="absolute" style="left: -6px; width: 12px; height: 24px; background-color: #517188; border-radius: 9999px;"></div>
-                    <div class="absolute" style="right: -6px; width: 12px; height: 24px; background-color: #517188; border-radius: 9999px;"></div>
+          <!-- Centered Clay Avatar -->
+          <div class="relative shrink-0" style="width: 76px; height: 76px; margin-bottom: 10px;">
+            <div class="clay-surface-sm flex items-center justify-center overflow-hidden" style="width: 76px; height: 76px; border-radius: 18px; padding: 5px; border: 1px solid rgba(255,255,255,0.4);">
+              <div class="w-full h-full flex items-center justify-center relative" style="border-radius: 14px; background: linear-gradient(135deg, #8faec2, #607e94); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+                <!-- Character Head -->
+                <div class="relative flex items-center justify-center" style="width: 46px; height: 46px; border-radius: 9999px; background-color: #f3d2be; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                  <!-- Hair -->
+                  <div class="absolute rounded-t-full" style="top: -6px; width: 42px; height: 23px; background-color: #364958;"></div>
+                  <!-- Cheerful Eyes -->
+                  <div class="flex justify-between" style="width: 26px; z-index: 10; padding-top: 4px;">
+                    <div style="width: 5px; height: 5px; background-color: #2c3d4a; border-radius: 9999px; box-shadow: 0 1px 1px rgba(0,0,0,0.2);"></div>
+                    <div style="width: 5px; height: 5px; background-color: #2c3d4a; border-radius: 9999px; box-shadow: 0 1px 1px rgba(0,0,0,0.2);"></div>
                   </div>
+                  <!-- Soft Smile -->
+                  <div class="absolute" style="bottom: 9px; width: 12px; height: 5px; border-bottom: 2px solid #2c3d4a; border-radius: 9999px;"></div>
+                  <!-- Clay Headphone Arc -->
+                  <div class="absolute pointer-events-none" style="top: -9px; width: 54px; height: 35px; border-top: 4px solid #517188; border-radius: 9999px;"></div>
+                  <!-- Headphone Pads -->
+                  <div class="absolute" style="left: -5px; width: 11px; height: 23px; background-color: #517188; border-radius: 9999px;"></div>
+                  <div class="absolute" style="right: -5px; width: 11px; height: 23px; background-color: #517188; border-radius: 9999px;"></div>
                 </div>
               </div>
-              <!-- Online Pip -->
-              <div class="clay-badge flex items-center justify-center absolute" style="bottom: -4px; right: -4px; width: 20px; height: 20px; border-radius: 9999px;">
-                <span style="width: 10px; height: 10px; border-radius: 9999px; background-color: #4bb390; box-shadow: 0 0 6px #4bb390;"></span>
-              </div>
             </div>
-
-            <!-- Welcome Text -->
-            <div class="flex-1" style="padding-right: 4px;">
-              <div class="clay-tag inline-flex items-center gap-1.5" style="padding: 2px 10px; border-radius: 9999px; margin-bottom: 6px;">
-                <span style="width: 6px; height: 6px; border-radius: 9999px; background-color: #4a97a8;"></span>
-                <span class="text-[10px] font-bold uppercase tracking-wide" style="color: #355b66;">Sound &amp; Mind</span>
-              </div>
-              <h1 id="auth-title" class="text-xl font-extrabold text-debossed leading-tight">Welcome back!</h1>
-              <p id="auth-subtitle" class="text-xs text-subtle-debossed font-medium" style="margin-top: 2px;">
-                Sign in to connect with your AI companion.
-              </p>
+            <!-- Online Pip -->
+            <div class="clay-badge flex items-center justify-center absolute" style="bottom: -3px; right: -3px; width: 18px; height: 18px; border-radius: 9999px;">
+              <span style="width: 8px; height: 8px; border-radius: 9999px; background-color: #4bb390; box-shadow: 0 0 6px #4bb390;"></span>
             </div>
           </div>
+
+          <!-- Centered Title & Subtitle -->
+          <div class="clay-tag inline-flex items-center gap-1.5" style="padding: 2px 10px; border-radius: 9999px; margin-bottom: 6px;">
+            <span style="width: 6px; height: 6px; border-radius: 9999px; background-color: #4a97a8;"></span>
+            <span class="text-[10px] font-bold uppercase tracking-wide" style="color: #355b66;">Sound &amp; Mind</span>
+          </div>
+          <h1 id="auth-title" class="text-2xl font-extrabold text-debossed leading-tight text-center" style="color: #2e4355;">Welcome</h1>
+          <p id="auth-subtitle" class="text-xs text-subtle-debossed font-medium text-center" style="margin-top: 3px; max-width: 290px; color: #5f7588;">
+            Sign in to connect with your AI companion.
+          </p>
         </section>
 
-        <!-- Mode Switcher: Sign In vs Sign Up -->
+        <!-- Mode Switcher: Sign In vs Sign Up (Centered) -->
         <div class="clay-surface-sm rounded-2xl flex items-center gap-1" style="padding: 4px; margin-bottom: 14px;">
           <button
             type="button"
             id="tab-signin"
             class="flex-1 text-xs font-bold clay-badge-active cursor-pointer text-center"
-            style="padding: 8px 0; border-radius: 12px; border: none;"
+            style="padding: 9px 0; border-radius: 12px; border: none;"
           >
             Sign In
           </button>
@@ -109,7 +105,7 @@
             type="button"
             id="tab-signup"
             class="flex-1 text-xs font-bold cursor-pointer text-center"
-            style="padding: 8px 0; border-radius: 12px; border: none; background: transparent; color: #50677b;"
+            style="padding: 9px 0; border-radius: 12px; border: none; background: transparent; color: #50677b;"
           >
             Create Account
           </button>
@@ -133,7 +129,7 @@
                   <path d="M12 23c3.2 0 6-1.1 8-3l-3.8-3c-1.1.7-2.5 1.2-4.2 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z" fill="#34a853"/>
                 </svg>
               </div>
-              <span class="text-xs font-bold text-debossed" style="color: #3d5368;">Continue with Google</span>
+              <span id="google-pill-label" class="text-xs font-bold text-debossed" style="color: #3d5368;">Sign In with Google</span>
             </div>
             <svg style="width: 16px; height: 16px; color: #60778c;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -154,11 +150,32 @@
                   <line x1="12" y1="18" x2="12.01" y2="18"/>
                 </svg>
               </div>
-              <span class="text-xs font-bold text-debossed" style="color: #3d5368;">Continue with Phone Number</span>
+              <span id="phone-pill-label" class="text-xs font-bold text-debossed" style="color: #3d5368;">Sign In with Phone Number</span>
             </div>
             <svg style="width: 16px; height: 16px; color: #60778c;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
+          </button>
+
+          <!-- Instant Guest Pill -->
+          <button
+            type="button"
+            id="btn-fast-guest"
+            class="clay-card-pill w-full flex items-center justify-between"
+            style="padding: 10px 16px; border-radius: 16px;"
+          >
+            <div class="flex items-center gap-3">
+              <div class="clay-badge flex items-center justify-center" style="width: 36px; height: 36px; border-radius: 12px; color: #4bb390;">
+                <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </div>
+              <div class="text-left">
+                <span class="text-xs font-bold text-debossed block" style="color: #304557;">Instant Guest Access</span>
+                <span class="text-[10px] text-subtle-debossed block" style="color: #71879a;">Enter chatbot directly without credentials</span>
+              </div>
+            </div>
+            <span class="clay-tag text-[10px] font-bold" style="padding: 3px 8px; border-radius: 8px; color: #355b66;">1-Tap</span>
           </button>
         </section>
 
@@ -494,23 +511,23 @@
           <path d="M12 23c3.2 0 6-1.1 8-3l-3.8-3c-1.1.7-2.5 1.2-4.2 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z" fill="#34a853"/>
         </svg>
       </div>
-      <h3 class="text-center font-extrabold text-debossed text-lg" style="color: #32485c;">Continue with Google</h3>
-      <p class="text-xs text-center" style="color: #687f94; margin: 4px 0 16px 0;">Enter your Google account to connect instantly</p>
+      <h3 id="google-modal-title" class="text-center font-extrabold text-debossed text-lg" style="color: #32485c;">Sign In with Google</h3>
+      <p id="google-modal-subtitle" class="text-xs text-center" style="color: #687f94; margin: 4px 0 16px 0;">Enter your Google account and password</p>
       
       <form id="form-google" class="flex flex-col gap-3">
-        <div class="clay-inset rounded-2xl" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
+        <div id="google-name-container" class="clay-inset rounded-2xl hidden" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
           <label class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">Your Name</label>
-          <input type="text" id="google-name" required placeholder="e.g. Maya" />
+          <input type="text" id="google-name" placeholder="e.g. Jishnu" />
         </div>
         <div class="clay-inset rounded-2xl" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
           <label class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">Gmail / Google Email</label>
           <input type="email" id="google-email" required placeholder="name@gmail.com" />
         </div>
         <div class="clay-inset rounded-2xl" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
-          <label class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">
-            Create Password <span style="font-weight: 400; text-transform: none; color: #879caf;">(optional for direct login)</span>
+          <label id="google-password-label" class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">
+            Password <span style="color: #dc2626;">*</span>
           </label>
-          <input type="password" id="google-password" placeholder="Set an account password" />
+          <input type="password" id="google-password" required minlength="4" placeholder="Enter your password" />
         </div>
         <button type="submit" id="btn-submit-google" class="clay-button-cyan w-full font-bold text-xs uppercase tracking-wider cursor-pointer" style="padding: 12px 0; border-radius: 16px; margin-top: 8px;">
           Sign In with Google
@@ -532,11 +549,11 @@
         </svg>
       </div>
       <h3 id="phone-modal-title" class="text-center font-extrabold text-debossed text-lg" style="color: #32485c;">Sign In with Phone</h3>
-      <p id="phone-modal-subtitle" class="text-xs text-center" style="color: #687f94; margin: 4px 0 16px 0;">Enter your name and mobile number to continue</p>
+      <p id="phone-modal-subtitle" class="text-xs text-center" style="color: #687f94; margin: 4px 0 16px 0;">Enter your mobile number and password</p>
 
       <!-- Step 1: Send OTP -->
       <div id="phone-step-1" class="flex flex-col gap-3">
-        <div class="clay-inset rounded-2xl" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
+        <div id="phone-name-container" class="clay-inset rounded-2xl hidden" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
           <label class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">Your Name</label>
           <input type="text" id="phone-name" placeholder="Enter your name" />
         </div>
@@ -545,10 +562,10 @@
           <input type="tel" id="phone-number" required placeholder="+91 98765 43210" />
         </div>
         <div class="clay-inset rounded-2xl" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
-          <label class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">
-            Create Password <span style="font-weight: 400; text-transform: none; color: #879caf;">(optional for direct login)</span>
+          <label id="phone-password-label" class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">
+            Password <span style="color: #dc2626;">*</span>
           </label>
-          <input type="password" id="phone-password" placeholder="Set an account password" />
+          <input type="password" id="phone-password" required minlength="4" placeholder="Enter your password" />
         </div>
         <button type="button" id="btn-send-otp" class="clay-button-cyan w-full font-bold text-xs uppercase tracking-wider cursor-pointer" style="padding: 14px 0; border-radius: 16px; margin-top: 8px;">
           Send Verification Code
@@ -564,7 +581,7 @@
           <input type="text" id="input-otp" maxlength="4" required placeholder="• • • •" style="text-align: center; letter-spacing: 0.5em; font-size: 18px; font-weight: 700;" />
         </div>
         <button type="submit" id="btn-verify-otp" class="clay-button-cyan w-full font-bold text-xs uppercase tracking-wider cursor-pointer" style="padding: 14px 0; border-radius: 16px; margin-top: 8px;">
-          Verify &amp; Enter Chatbot
+          Verify &amp; Sign In
         </button>
       </form>
     </div>
@@ -577,14 +594,20 @@
         ✕
       </button>
       <h3 class="text-center font-extrabold text-debossed text-lg" style="color: #32485c;">Reset Password</h3>
-      <p class="text-xs text-center" style="color: #687f94; margin: 4px 0 16px 0;">Enter your email to receive a password reset link.</p>
+      <p class="text-xs text-center" style="color: #687f94; margin: 4px 0 16px 0;">Set a new password for your account</p>
 
-      <div id="forgot-form-section" class="flex flex-col gap-4">
-        <div class="clay-inset rounded-2xl" style="padding: 14px; border: 1px solid rgba(255,255,255,0.2);">
-          <input type="email" id="forgot-email" placeholder="name@example.com" />
+      <div id="forgot-form-section" class="flex flex-col gap-3">
+        <div class="clay-inset rounded-2xl" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
+          <label class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">Account Email</label>
+          <input type="email" id="forgot-email" required placeholder="name@example.com" />
         </div>
+        <div class="clay-inset rounded-2xl" style="padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
+          <label class="text-[10px] font-bold uppercase" style="color: #556e84; display: block; margin-bottom: 4px;">New Password (min 4 chars)</label>
+          <input type="password" id="forgot-new-password" required minlength="4" placeholder="Enter new password" />
+        </div>
+        <div id="forgot-error-msg" class="text-xs font-semibold text-center hidden" style="color: #dc2626;"></div>
         <button type="button" id="btn-send-reset" class="clay-button-cyan w-full font-bold text-xs uppercase tracking-wider cursor-pointer" style="padding: 14px 0; border-radius: 16px;">
-          Send Reset Link
+          Reset Password &amp; Sign In
         </button>
       </div>
 
@@ -592,8 +615,8 @@
         <svg style="width: 32px; height: 32px; color: #4bb390; margin: 0 auto;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="text-xs font-bold" style="color: #344d61;">Reset Link Sent!</p>
-        <p id="forgot-sent-msg" class="text-[11px]" style="color: #6d8396;">Check your inbox</p>
+        <p class="text-xs font-bold" style="color: #344d61;">Password Updated!</p>
+        <p id="forgot-sent-msg" class="text-[11px]" style="color: #6d8396;">You can now sign in with your new password.</p>
         <button type="button" class="btn-close-modal clay-button-cyan text-xs font-bold cursor-pointer" style="margin-top: 12px; padding: 10px 0; border-radius: 12px; width: 100%;">
           Back to Sign In
         </button>

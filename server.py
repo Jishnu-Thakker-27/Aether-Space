@@ -11,6 +11,7 @@ if sys.platform == "win32":
 
 import json
 import mimetypes
+import threading
 from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 
@@ -221,10 +222,13 @@ class AetherRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/google-auth":
             name = str(body.get("name", "")).strip() or "Google User"
             email = str(body.get("email", "")).strip().lower()
-            password = body.get("password")
+            password = str(body.get("password", "")).strip()
 
             if not email:
                 self.send_error_json("Google email is required.", 400)
+                return
+            if not password or len(password) < 4:
+                self.send_error_json("Password is required (minimum 4 characters).", 400)
                 return
 
             user_data, error = database.create_or_get_oauth_user(name, email, password)
@@ -243,10 +247,13 @@ class AetherRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/phone-auth":
             phone = str(body.get("phone", "")).strip()
             name = str(body.get("name", "")).strip() or f"User {phone[-4:] if len(phone)>=4 else 'Phone'}"
-            password = body.get("password")
+            password = str(body.get("password", "")).strip()
 
             if not phone or len(phone) < 6:
                 self.send_error_json("Valid phone number is required.", 400)
+                return
+            if not password or len(password) < 4:
+                self.send_error_json("Password is required (minimum 4 characters).", 400)
                 return
 
             clean_phone = phone.replace(" ", "").replace("+", "").replace("-", "")
@@ -260,6 +267,26 @@ class AetherRequestHandler(BaseHTTPRequestHandler):
                 "success": True,
                 "message": "Phone sign-in successful!",
                 "user": user_data
+            }, status_code=200)
+            return
+
+        # 4b. Reset Password
+        if path == "/api/reset-password":
+            email = str(body.get("email", "")).strip().lower()
+            new_password = str(body.get("new_password", "")).strip()
+
+            if not email or not new_password:
+                self.send_error_json("Email and new password are required.", 400)
+                return
+
+            success, error = database.reset_user_password(email, new_password)
+            if error:
+                self.send_error_json(error, 400)
+                return
+
+            self.send_json({
+                "success": True,
+                "message": "Password reset successfully! Please sign in with your new password."
             }, status_code=200)
             return
 
@@ -280,8 +307,12 @@ class AetherRequestHandler(BaseHTTPRequestHandler):
                 if user_info:
                     user_id = user_info["id"]
 
-            # Save user message into database
-            database.save_chat_message(user_id=user_id, role="user", message=message)
+            # Save user message asynchronously for fastest response
+            threading.Thread(
+                target=database.save_chat_message,
+                args=(user_id, "user", message),
+                daemon=True
+            ).start()
 
             # Convert history to format needed by AI
             history_dicts = []
@@ -297,8 +328,12 @@ class AetherRequestHandler(BaseHTTPRequestHandler):
                 history=history_dicts
             )
 
-            # Save assistant reply into database
-            database.save_chat_message(user_id=user_id, role="assistant", message=reply_text)
+            # Save assistant reply asynchronously
+            threading.Thread(
+                target=database.save_chat_message,
+                args=(user_id, "assistant", reply_text),
+                daemon=True
+            ).start()
 
             self.send_json({
                 "reply": reply_text,

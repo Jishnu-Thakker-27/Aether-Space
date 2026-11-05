@@ -216,32 +216,120 @@ function getGreeting() {
   return 'Good evening';
 }
 
-// Helper to render bold text and bullet points cleanly
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Helper to render markdown, code blocks, bold text, headings, and lists cleanly
 function renderFormattedContent(content) {
-  const lines = content.split('\n');
-  return lines.map((line) => {
+  if (!content) return '';
+
+  // Handle multi-line code blocks using non-hash delimiters
+  const codeBlockRegex = /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g;
+  const processed = content.replace(codeBlockRegex, (match, lang, code) => {
+    const escapedCode = escapeHtml(code.trim());
+    const langBadge = lang
+      ? `<div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">${escapeHtml(lang)}</div>`
+      : '';
+    return `§§§CODEBLOCK_START§§§${langBadge}<pre style="margin: 6px 0; padding: 10px 12px; background: rgba(30, 41, 59, 0.08); border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; overflow-x: auto; color: #1e293b; line-height: 1.45; border: 1px solid rgba(148, 163, 184, 0.25);"><code>${escapedCode}</code></pre>§§§CODEBLOCK_END§§§`;
+  });
+
+  const lines = processed.split('\n');
+  let inCodeBlock = false;
+  const outputLines = [];
+
+  for (let line of lines) {
+    if (line.includes('§§§CODEBLOCK_START§§§')) {
+      inCodeBlock = true;
+      line = line.replace('§§§CODEBLOCK_START§§§', '');
+    }
+    if (line.includes('§§§CODEBLOCK_END§§§')) {
+      inCodeBlock = false;
+      line = line.replace('§§§CODEBLOCK_END§§§', '');
+      outputLines.push(line);
+      continue;
+    }
+    if (inCodeBlock) {
+      outputLines.push(line);
+      continue;
+    }
+
     const trimmed = line.trim();
-    const isBullet = trimmed.startsWith('* ') || trimmed.startsWith('- ');
-    let text = isBullet ? trimmed.substring(2) : trimmed;
+    if (!trimmed) {
+      outputLines.push('<div style="height: 6px;"></div>');
+      continue;
+    }
+
+    // Check and parse Markdown headings (# Heading, ## Heading, ### Heading, etc.)
+    const headerMatch = trimmed.match(/^(#{1,6})\s*(.*)$/);
+    if (headerMatch) {
+      const level = headerMatch[1].length;
+      let titleText = escapeHtml(headerMatch[2].trim());
+      // Apply inline bold & code tags inside headings
+      titleText = titleText.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 800;">$1</strong>');
+      titleText = titleText.replace(/`([^`]+)`/g, '<code style="background: rgba(82, 166, 186, 0.15); color: #0e7490; padding: 1px 4px; border-radius: 4px; font-size: 11px;">$1</code>');
+
+      if (level === 1) {
+        outputLines.push(`<div style="font-size: 14px; font-weight: 800; color: #162a3b; margin: 8px 0 3px 0; border-bottom: 1px solid rgba(82, 166, 186, 0.25); padding-bottom: 2px;">${titleText}</div>`);
+      } else if (level === 2) {
+        outputLines.push(`<div style="font-size: 13px; font-weight: 800; color: #1e3345; margin: 7px 0 3px 0;">${titleText}</div>`);
+      } else if (level === 3) {
+        outputLines.push(`<div style="font-size: 12.5px; font-weight: 800; color: #22384c; margin: 6px 0 2px 0;">${titleText}</div>`);
+      } else {
+        outputLines.push(`<div style="font-size: 12px; font-weight: 700; color: #2d4559; margin: 5px 0 2px 0;">${titleText}</div>`);
+      }
+      continue;
+    }
+
+    // Strip any other accidental leading hash signs from the line
+    let cleanedLine = trimmed.replace(/^#{1,6}\s*/, '');
+
+    const isBullet = cleanedLine.startsWith('* ') || cleanedLine.startsWith('- ');
+    const isNumbered = /^\d+\.\s/.test(cleanedLine);
+
+    let text = cleanedLine;
+    if (isBullet) {
+      text = cleanedLine.substring(2);
+    } else if (isNumbered) {
+      text = cleanedLine.replace(/^\d+\.\s/, '');
+    }
+
+    // Escape HTML inside standard text lines (code blocks are handled separately)
+    text = escapeHtml(text);
 
     // Bold formatting: **text**
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 800; color: #1f3447;">$1</strong>');
 
+    // Inline code formatting: `code`
+    text = text.replace(/`([^`]+)`/g, '<code style="background: rgba(82, 166, 186, 0.15); color: #0e7490; padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: 600;">$1</code>');
+
     if (isBullet) {
-      return `
+      outputLines.push(`
         <div style="display: flex; align-items: flex-start; gap: 8px; margin-left: 4px; margin-top: 2px; margin-bottom: 2px;">
           <span style="width: 6px; height: 6px; border-radius: 9999px; background-color: #52a6ba; flex-shrink: 0; margin-top: 6px;"></span>
           <span style="flex: 1 1 0%;">${text}</span>
         </div>
-      `;
+      `);
+    } else if (isNumbered) {
+      const matchNum = cleanedLine.match(/^(\d+)\.\s/);
+      const numLabel = matchNum ? matchNum[1] : '•';
+      outputLines.push(`
+        <div style="display: flex; align-items: flex-start; gap: 6px; margin-left: 4px; margin-top: 2px; margin-bottom: 2px;">
+          <span style="font-weight: 700; color: #52a6ba; flex-shrink: 0; min-width: 14px;">${numLabel}.</span>
+          <span style="flex: 1 1 0%;">${text}</span>
+        </div>
+      `);
+    } else {
+      outputLines.push(`<p style="margin: 2px 0;">${text}</p>`);
     }
+  }
 
-    if (!trimmed) {
-      return '<div style="height: 6px;"></div>';
-    }
-
-    return `<p style="margin: 2px 0;">${text}</p>`;
-  }).join('');
+  return outputLines.join('');
 }
 
 // ============================================================================
@@ -277,10 +365,13 @@ const DOM = {
   // Modals buttons
   btnOpenGoogle: document.getElementById('btn-open-google'),
   btnOpenPhone: document.getElementById('btn-open-phone'),
+  btnFastGuest: document.getElementById('btn-fast-guest'),
   btnOpenForgot: document.getElementById('btn-open-forgot'),
   btnOpenHelp: document.getElementById('btn-open-help'),
   linkTerms: document.getElementById('link-terms'),
   linkPrivacy: document.getElementById('link-privacy'),
+  googlePillLabel: document.getElementById('google-pill-label'),
+  phonePillLabel: document.getElementById('phone-pill-label'),
 
   // Modals overlays
   modalGoogle: document.getElementById('modal-google'),
@@ -289,6 +380,10 @@ const DOM = {
   modalHelp: document.getElementById('modal-help'),
 
   // Google Modal form
+  googleModalTitle: document.getElementById('google-modal-title'),
+  googleModalSubtitle: document.getElementById('google-modal-subtitle'),
+  googleNameContainer: document.getElementById('google-name-container'),
+  googlePasswordLabel: document.getElementById('google-password-label'),
   formGoogle: document.getElementById('form-google'),
   googleName: document.getElementById('google-name'),
   googleEmail: document.getElementById('google-email'),
@@ -296,6 +391,10 @@ const DOM = {
   btnSubmitGoogle: document.getElementById('btn-submit-google'),
 
   // Phone Modal
+  phoneModalTitle: document.getElementById('phone-modal-title'),
+  phoneModalSubtitle: document.getElementById('phone-modal-subtitle'),
+  phoneNameContainer: document.getElementById('phone-name-container'),
+  phonePasswordLabel: document.getElementById('phone-password-label'),
   phoneStep1: document.getElementById('phone-step-1'),
   phoneStep2: document.getElementById('phone-step-2'),
   phoneName: document.getElementById('phone-name'),
@@ -308,6 +407,8 @@ const DOM = {
 
   // Forgot Password
   forgotEmail: document.getElementById('forgot-email'),
+  forgotNewPassword: document.getElementById('forgot-new-password'),
+  forgotErrorMsg: document.getElementById('forgot-error-msg'),
   btnSendReset: document.getElementById('btn-send-reset'),
   forgotFormSection: document.getElementById('forgot-form-section'),
   forgotSuccessSection: document.getElementById('forgot-success-section'),
@@ -372,11 +473,29 @@ function setAuthMode(mode) {
     DOM.tabSignUp.style.background = 'transparent';
     DOM.tabSignUp.style.color = '#50677b';
 
-    DOM.authTitle.innerText = 'Welcome back!';
+    DOM.authTitle.innerText = 'Welcome';
     DOM.authSubtitle.innerText = 'Sign in to connect with your AI companion.';
     DOM.dividerText.innerText = 'or email sign in';
     DOM.labelPassword.innerText = 'Password';
+    DOM.inputPassword.placeholder = 'Enter your password';
     DOM.btnAuthSubmitText.innerText = 'Sign In to Chatbot';
+
+    if (DOM.googlePillLabel) DOM.googlePillLabel.innerText = 'Sign In with Google';
+    if (DOM.phonePillLabel) DOM.phonePillLabel.innerText = 'Sign In with Phone Number';
+
+    if (DOM.googleModalTitle) DOM.googleModalTitle.innerText = 'Sign In with Google';
+    if (DOM.googleModalSubtitle) DOM.googleModalSubtitle.innerText = 'Enter your Google account and password';
+    if (DOM.btnSubmitGoogle) DOM.btnSubmitGoogle.innerText = 'Sign In with Google';
+    if (DOM.googleNameContainer) DOM.googleNameContainer.classList.add('hidden');
+    if (DOM.googlePasswordLabel) DOM.googlePasswordLabel.innerHTML = 'Password <span style="color: #dc2626;">*</span>';
+    if (DOM.googlePassword) DOM.googlePassword.placeholder = 'Enter your password';
+
+    if (DOM.phoneModalTitle) DOM.phoneModalTitle.innerText = 'Sign In with Phone';
+    if (DOM.phoneModalSubtitle) DOM.phoneModalSubtitle.innerText = 'Enter your mobile number and password';
+    if (DOM.btnVerifyOtp) DOM.btnVerifyOtp.innerText = 'Verify & Sign In';
+    if (DOM.phoneNameContainer) DOM.phoneNameContainer.classList.add('hidden');
+    if (DOM.phonePasswordLabel) DOM.phonePasswordLabel.innerHTML = 'Password <span style="color: #dc2626;">*</span>';
+    if (DOM.phonePassword) DOM.phonePassword.placeholder = 'Enter your password';
 
     DOM.fieldUsernameContainer.classList.add('hidden');
     DOM.fieldConfirmContainer.classList.add('hidden');
@@ -391,7 +510,25 @@ function setAuthMode(mode) {
     DOM.authSubtitle.innerText = 'Join Aether Space to begin your journey.';
     DOM.dividerText.innerText = 'or create with email';
     DOM.labelPassword.innerText = 'Create Password';
+    DOM.inputPassword.placeholder = 'Choose a password (min 4 chars)';
     DOM.btnAuthSubmitText.innerText = 'Create Account & Start Chat';
+
+    if (DOM.googlePillLabel) DOM.googlePillLabel.innerText = 'Create with Google';
+    if (DOM.phonePillLabel) DOM.phonePillLabel.innerText = 'Create with Phone Number';
+
+    if (DOM.googleModalTitle) DOM.googleModalTitle.innerText = 'Create Account with Google';
+    if (DOM.googleModalSubtitle) DOM.googleModalSubtitle.innerText = 'Choose your display name, Gmail and password';
+    if (DOM.btnSubmitGoogle) DOM.btnSubmitGoogle.innerText = 'Create Account with Google';
+    if (DOM.googleNameContainer) DOM.googleNameContainer.classList.remove('hidden');
+    if (DOM.googlePasswordLabel) DOM.googlePasswordLabel.innerHTML = 'Create Password <span style="color: #dc2626;">*</span>';
+    if (DOM.googlePassword) DOM.googlePassword.placeholder = 'Choose a password (min 4 chars)';
+
+    if (DOM.phoneModalTitle) DOM.phoneModalTitle.innerText = 'Create Account with Phone';
+    if (DOM.phoneModalSubtitle) DOM.phoneModalSubtitle.innerText = 'Choose your name, phone and password';
+    if (DOM.btnVerifyOtp) DOM.btnVerifyOtp.innerText = 'Verify & Create Account';
+    if (DOM.phoneNameContainer) DOM.phoneNameContainer.classList.remove('hidden');
+    if (DOM.phonePasswordLabel) DOM.phonePasswordLabel.innerHTML = 'Create Password <span style="color: #dc2626;">*</span>';
+    if (DOM.phonePassword) DOM.phonePassword.placeholder = 'Choose a password (min 4 chars)';
 
     DOM.fieldUsernameContainer.classList.remove('hidden');
     DOM.fieldConfirmContainer.classList.remove('hidden');
@@ -428,6 +565,7 @@ DOM.btnOpenForgot.addEventListener('click', () => {
   DOM.forgotEmail.value = DOM.inputEmail.value;
   DOM.forgotFormSection.classList.remove('hidden');
   DOM.forgotSuccessSection.classList.add('hidden');
+  hideForgotError();
   openModal(DOM.modalForgot);
 });
 DOM.btnOpenPhone.addEventListener('click', () => {
@@ -435,6 +573,14 @@ DOM.btnOpenPhone.addEventListener('click', () => {
   DOM.phoneStep2.classList.add('hidden');
   openModal(DOM.modalPhone);
 });
+
+// Fast Guest 1-Tap Entry
+if (DOM.btnFastGuest) {
+  DOM.btnFastGuest.addEventListener('click', () => {
+    audio.playChime(528, 1.2);
+    enterChatbot('Explorer', 'guest@aetherspace.local');
+  });
+}
 
 // 1. Email Auth Submit Handler
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
@@ -446,11 +592,23 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
   const password = DOM.inputPassword.value.trim();
   const confirmPassword = DOM.inputConfirmPassword.value.trim();
 
+  if (!email) {
+    showAuthError('Please enter your email address.');
+    return;
+  }
+
+  // Password is strictly compulsory for both Sign In and Sign Up
+  if (!password) {
+    showAuthError('Password is compulsory. Please enter your password.');
+    return;
+  }
+
+  if (password.length < 4) {
+    showAuthError('Password must be at least 4 characters long.');
+    return;
+  }
+
   if (state.authMode === 'signup') {
-    if (password.length < 4) {
-      showAuthError('Password must be at least 4 characters long.');
-      return;
-    }
     if (password !== confirmPassword) {
       showAuthError('Passwords do not match. Please re-enter.');
       return;
@@ -459,7 +617,7 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
 
   audio.playHapticClick(480, 0.08);
   DOM.btnAuthSubmit.disabled = true;
-  DOM.btnAuthSubmitText.innerText = 'Opening Space...';
+  DOM.btnAuthSubmitText.innerText = state.authMode === 'signin' ? 'Signing In...' : 'Opening Space...';
 
   const endpoint = state.authMode === 'signup' ? '/api/register' : '/api/login';
   const payload = state.authMode === 'signup'
@@ -481,13 +639,7 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     audio.playChime(528, 1.2);
     enterChatbot(data.user?.username || username, data.user?.email || email);
   } catch (err) {
-    if (err.message && !err.message.includes('fetch') && !err.message.includes('Failed to fetch')) {
-      showAuthError(err.message);
-    } else {
-      // Local zero-downtime offline proceed
-      audio.playChime(528, 1.2);
-      enterChatbot(username || email.split('@')[0] || 'Friend', email);
-    }
+    showAuthError(err.message || 'Authentication failed. Please check your credentials.');
   } finally {
     DOM.btnAuthSubmit.disabled = false;
     DOM.btnAuthSubmitText.innerText = state.authMode === 'signin' ? 'Sign In to Chatbot' : 'Create Account & Start Chat';
@@ -507,37 +659,67 @@ DOM.formGoogle.addEventListener('submit', async (e) => {
   const email = DOM.googleEmail.value.trim().toLowerCase();
   const password = DOM.googlePassword.value.trim();
 
+  if (!email) {
+    alert('Please enter your Google email.');
+    return;
+  }
+
+  if (!password) {
+    alert('Password is compulsory. Please enter your password.');
+    return;
+  }
+
+  if (password.length < 4) {
+    alert('Password must be at least 4 characters long.');
+    return;
+  }
+
   audio.playHapticClick(450);
   DOM.btnSubmitGoogle.disabled = true;
-  DOM.btnSubmitGoogle.innerText = 'Signing In...';
+  DOM.btnSubmitGoogle.innerText = state.authMode === 'signup' ? 'Creating Account...' : 'Signing In...';
 
   try {
     const res = await fetch('/api/google-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password: password || undefined })
+      body: JSON.stringify({ name, email, password })
     });
     const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || data.error || 'Google authentication failed');
+    }
     closeModal(DOM.modalGoogle);
     audio.playChime(528, 1.2);
     enterChatbot(data.user?.username || name, data.user?.email || email);
-  } catch {
-    closeModal(DOM.modalGoogle);
-    audio.playChime(528, 1.2);
-    enterChatbot(name, email);
+  } catch (err) {
+    audio.playHapticClick(260);
+    alert(err.message || 'Google authentication failed. Please try again.');
   } finally {
     DOM.btnSubmitGoogle.disabled = false;
-    DOM.btnSubmitGoogle.innerText = 'Sign In with Google';
+    DOM.btnSubmitGoogle.innerText = state.authMode === 'signup' ? 'Create Account with Google' : 'Sign In with Google';
   }
 });
 
 // 3. Phone Sign-In Flow Handler
 DOM.btnSendOtp.addEventListener('click', () => {
   const phone = DOM.phoneNumber.value.trim();
+  const password = DOM.phonePassword.value.trim();
+
   if (!phone || phone.length < 6) {
-    alert('Please enter a valid phone number');
+    alert('Please enter a valid phone number.');
     return;
   }
+
+  if (!password) {
+    alert('Password is compulsory. Please enter your password before verification.');
+    return;
+  }
+
+  if (password.length < 4) {
+    alert('Password must be at least 4 characters long.');
+    return;
+  }
+
   audio.playHapticClick(400);
   const code = Math.floor(1000 + Math.random() * 9000).toString();
   state.generatedOtp = code;
@@ -565,33 +747,84 @@ DOM.phoneStep2.addEventListener('submit', async (e) => {
     const res = await fetch('/api/phone-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, name, password: password || undefined })
+      body: JSON.stringify({ phone, name, password })
     });
     const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || data.error || 'Phone authentication failed');
+    }
     closeModal(DOM.modalPhone);
     audio.playChime(528, 1.2);
     enterChatbot(data.user?.username || name, data.user?.email || `phone_${phone}@mobile.user`);
-  } catch {
-    closeModal(DOM.modalPhone);
-    audio.playChime(528, 1.2);
-    enterChatbot(name, `phone_${phone}@mobile.user`);
+  } catch (err) {
+    audio.playHapticClick(260);
+    alert(err.message || 'Phone authentication failed. Please try again.');
   } finally {
     DOM.btnVerifyOtp.disabled = false;
-    DOM.btnVerifyOtp.innerText = 'Verify & Enter Chatbot';
+    DOM.btnVerifyOtp.innerText = state.authMode === 'signup' ? 'Verify & Create Account' : 'Verify & Sign In';
   }
 });
 
 // 4. Forgot Password Reset Handler
-DOM.btnSendReset.addEventListener('click', () => {
-  const email = DOM.forgotEmail.value.trim();
+function showForgotError(msg) {
+  if (DOM.forgotErrorMsg) {
+    DOM.forgotErrorMsg.innerText = msg;
+    DOM.forgotErrorMsg.classList.remove('hidden');
+  } else {
+    alert(msg);
+  }
+}
+
+function hideForgotError() {
+  if (DOM.forgotErrorMsg) {
+    DOM.forgotErrorMsg.classList.add('hidden');
+  }
+}
+
+DOM.btnSendReset.addEventListener('click', async () => {
+  const email = DOM.forgotEmail.value.trim().toLowerCase();
+  const newPassword = DOM.forgotNewPassword ? DOM.forgotNewPassword.value.trim() : '';
+
   if (!email) {
-    alert('Please enter your email address');
+    showForgotError('Please enter your email address');
     return;
   }
+
+  if (!newPassword || newPassword.length < 4) {
+    showForgotError('New password must be at least 4 characters long.');
+    return;
+  }
+
   audio.playHapticClick(420);
-  DOM.forgotSentMsg.innerText = `Check your inbox at ${email}`;
-  DOM.forgotFormSection.classList.add('hidden');
-  DOM.forgotSuccessSection.classList.remove('hidden');
+  DOM.btnSendReset.disabled = true;
+  DOM.btnSendReset.innerText = 'Resetting Password...';
+  hideForgotError();
+
+  try {
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, new_password: newPassword })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || data.error || 'Password reset failed');
+    }
+
+    audio.playChime(528, 1.2);
+    DOM.forgotSentMsg.innerText = `Password updated for ${email}. You can now sign in!`;
+    DOM.forgotFormSection.classList.add('hidden');
+    DOM.forgotSuccessSection.classList.remove('hidden');
+
+    DOM.inputEmail.value = email;
+    DOM.inputPassword.value = newPassword;
+  } catch (err) {
+    showForgotError(err.message || 'Failed to reset password. Please check the email.');
+  } finally {
+    DOM.btnSendReset.disabled = false;
+    DOM.btnSendReset.innerText = 'Reset Password & Sign In';
+  }
 });
 
 // ============================================================================
@@ -601,6 +834,11 @@ DOM.btnSendReset.addEventListener('click', () => {
 function enterChatbot(username, email) {
   state.currentUser = { username: username || 'Friend', email: email || '' };
   state.screen = 'chatbot';
+
+  // Save session for automatic re-entry
+  try {
+    localStorage.setItem('aether_session', JSON.stringify(state.currentUser));
+  } catch {}
 
   DOM.authScreen.classList.add('hidden');
   DOM.chatbotScreen.classList.remove('hidden');
@@ -614,6 +852,9 @@ function enterChatbot(username, email) {
 
 DOM.btnBackToAuth.addEventListener('click', () => {
   audio.playHapticClick(260);
+  try {
+    localStorage.removeItem('aether_session');
+  } catch {}
   if (state.ambientAudioOn) {
     toggleAmbientSoundscape();
   }
@@ -870,7 +1111,7 @@ async function sendMessage(textToSend) {
   DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
 
   try {
-    const historyPayload = state.messages.map((m) => ({
+    const historyPayload = state.messages.slice(-6).map((m) => ({
       role: m.role === 'user' ? 'user' : 'model',
       content: m.content
     }));
@@ -929,3 +1170,19 @@ document.querySelectorAll('.chip-btn').forEach((btn) => {
     }
   });
 });
+
+// Initialize default Auth mode to 'signin'
+setAuthMode('signin');
+
+// Auto-restore previous user session if available
+(function restoreSession() {
+  try {
+    const saved = localStorage.getItem('aether_session');
+    if (saved) {
+      const u = JSON.parse(saved);
+      if (u && (u.username || u.email)) {
+        enterChatbot(u.username, u.email);
+      }
+    }
+  } catch {}
+})();
