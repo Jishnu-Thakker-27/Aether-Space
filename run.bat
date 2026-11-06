@@ -1,11 +1,11 @@
 @echo off
-title Aether Space — AI Chatbot Server
+title Aether Space — FastAPI + Vite AI Assistant
 echo ========================================================
-echo   Starting Aether Space Chatbot Server
-echo   Pure Python + HTML5 + CSS3 + JavaScript
-echo   Zero External Web Frameworks (No FastAPI / Node.js)
+echo   Starting Aether Space Server (FastAPI + Vite)
+echo   FastAPI Backend on http://127.0.0.1:8000
+echo   API Documentation on http://127.0.0.1:8000/docs
 echo ========================================================
 cd /d "%~dp0"
 start http://127.0.0.1:8000
-python server.py
+python main.py 8000
 pause
