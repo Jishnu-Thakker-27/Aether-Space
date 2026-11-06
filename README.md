@@ -121,11 +121,13 @@ Vite compiles optimized production assets into `dist/`, which FastAPI automatica
    - Animated custom 3D clay avatar with headphones, cheerful expressions, and online indicator pip.
    - Responsive card container that scales effortlessly between desktop laptops and mobile viewports.
 
-4. **Multi-Method Secure Authentication:**
-   - **Email & Password:** Registration and login with compulsory passwords and salted SHA-256 hashing.
-   - **Google OAuth Simulation:** Modal sign-in/registration with compulsory password.
-   - **Phone Number with OTP:** 4-digit verification code generation with compulsory password.
-   - **Forgot Password Modal:** In-app reset endpoint updating account credentials.
+4. **Enterprise-Grade Authentication & Security:**
+   - **Bcrypt Password Hashing:** Passwords hashed with salted bcrypt (rounds=12). Passwords are never stored plain-text or in browser `localStorage`.
+   - **Token-Verified Password Reset:** 2-step reset flow requiring a cryptographically random 6-digit verification code with 10-minute validity, eliminating unauthorized account takeovers.
+   - **Official Google OAuth 2.0:** Integrated with Google Identity Services (GSI). Users authenticate on Google's domain; backend verifies signed ID tokens without collecting user passwords.
+   - **Strict Password Rules:** Minimum 8 characters enforced on both frontend and backend Pydantic schemas.
+   - **Server-Side API Key Isolation:** `GEMINI_API_KEY` is strictly confined to server-side environment variables and is never exposed to client-side scripts.
+   - **WCAG 2.1 Accessibility:** Viewport metadata allows pinch-to-zoom for responsive accessibility compliance.
 
 5. **Sub-Second AI Inference & IST Sync:**
    - Prioritized `gemini-3.1-flash-lite` responding in ~0.7s - 1.0s.

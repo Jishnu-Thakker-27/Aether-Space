@@ -364,55 +364,30 @@ const DOM = {
 
   // Modals buttons
   btnOpenGoogle: document.getElementById('btn-open-google'),
-  btnOpenPhone: document.getElementById('btn-open-phone'),
   btnFastGuest: document.getElementById('btn-fast-guest'),
   btnOpenForgot: document.getElementById('btn-open-forgot'),
   btnOpenHelp: document.getElementById('btn-open-help'),
   linkTerms: document.getElementById('link-terms'),
   linkPrivacy: document.getElementById('link-privacy'),
   googlePillLabel: document.getElementById('google-pill-label'),
-  phonePillLabel: document.getElementById('phone-pill-label'),
 
   // Modals overlays
-  modalGoogle: document.getElementById('modal-google'),
-  modalPhone: document.getElementById('modal-phone'),
+  modalGoogleInfo: document.getElementById('modal-google-info'),
+  btnTriggerGsiPrompt: document.getElementById('btn-trigger-gsi-prompt'),
   modalForgot: document.getElementById('modal-forgot'),
   modalHelp: document.getElementById('modal-help'),
 
-  // Google Modal form
-  googleModalTitle: document.getElementById('google-modal-title'),
-  googleModalSubtitle: document.getElementById('google-modal-subtitle'),
-  googleNameContainer: document.getElementById('google-name-container'),
-  googlePasswordLabel: document.getElementById('google-password-label'),
-  formGoogle: document.getElementById('form-google'),
-  googleName: document.getElementById('google-name'),
-  googleEmail: document.getElementById('google-email'),
-  googlePassword: document.getElementById('google-password'),
-  btnSubmitGoogle: document.getElementById('btn-submit-google'),
-
-  // Phone Modal
-  phoneModalTitle: document.getElementById('phone-modal-title'),
-  phoneModalSubtitle: document.getElementById('phone-modal-subtitle'),
-  phoneNameContainer: document.getElementById('phone-name-container'),
-  phonePasswordLabel: document.getElementById('phone-password-label'),
-  phoneStep1: document.getElementById('phone-step-1'),
-  phoneStep2: document.getElementById('phone-step-2'),
-  phoneName: document.getElementById('phone-name'),
-  phoneNumber: document.getElementById('phone-number'),
-  phonePassword: document.getElementById('phone-password'),
-  btnSendOtp: document.getElementById('btn-send-otp'),
-  displayOtpCode: document.getElementById('display-otp-code'),
-  inputOtp: document.getElementById('input-otp'),
-  btnVerifyOtp: document.getElementById('btn-verify-otp'),
-
-  // Forgot Password
+  // Secure Token-Verified Password Reset
+  forgotStep1: document.getElementById('forgot-step-1'),
+  forgotStep2: document.getElementById('forgot-step-2'),
   forgotEmail: document.getElementById('forgot-email'),
+  forgotCode: document.getElementById('forgot-code'),
   forgotNewPassword: document.getElementById('forgot-new-password'),
-  forgotErrorMsg: document.getElementById('forgot-error-msg'),
-  btnSendReset: document.getElementById('btn-send-reset'),
-  forgotFormSection: document.getElementById('forgot-form-section'),
+  forgotErrorMsg1: document.getElementById('forgot-error-msg-1'),
+  forgotErrorMsg2: document.getElementById('forgot-error-msg-2'),
+  btnSendResetCode: document.getElementById('btn-send-reset-code'),
+  btnVerifyAndReset: document.getElementById('btn-verify-and-reset'),
   forgotSuccessSection: document.getElementById('forgot-success-section'),
-  forgotSentMsg: document.getElementById('forgot-sent-msg'),
 
   // Chatbot elements
   btnBackToAuth: document.getElementById('btn-back-to-auth'),
@@ -436,11 +411,13 @@ const DOM = {
 // ============================================================================
 
 function openModal(modalEl) {
+  if (!modalEl) return;
   audio.playHapticClick(350);
   modalEl.classList.remove('hidden');
 }
 
 function closeModal(modalEl) {
+  if (!modalEl) return;
   audio.playHapticClick(280);
   modalEl.classList.add('hidden');
 }
@@ -452,9 +429,9 @@ document.querySelectorAll('.btn-close-modal').forEach((btn) => {
   });
 });
 
-[DOM.modalGoogle, DOM.modalPhone, DOM.modalForgot, DOM.modalHelp].forEach((modal) => {
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal(modal);
+document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal(overlay);
   });
 });
 
@@ -465,7 +442,7 @@ document.querySelectorAll('.btn-close-modal').forEach((btn) => {
 function setAuthMode(mode) {
   state.authMode = mode;
   audio.playHapticClick(350);
-  DOM.authErrorBox.classList.add('hidden');
+  if (DOM.authErrorBox) DOM.authErrorBox.classList.add('hidden');
 
   if (mode === 'signin') {
     DOM.tabSignIn.className = 'flex-1 text-xs font-bold clay-badge-active cursor-pointer text-center';
@@ -477,25 +454,10 @@ function setAuthMode(mode) {
     DOM.authSubtitle.innerText = 'Sign in to connect with your AI companion.';
     DOM.dividerText.innerText = 'or email sign in';
     DOM.labelPassword.innerText = 'Password';
-    DOM.inputPassword.placeholder = 'Enter your password';
+    DOM.inputPassword.placeholder = 'Enter your password (min 8 chars)';
     DOM.btnAuthSubmitText.innerText = 'Sign In to Chatbot';
 
     if (DOM.googlePillLabel) DOM.googlePillLabel.innerText = 'Sign In with Google';
-    if (DOM.phonePillLabel) DOM.phonePillLabel.innerText = 'Sign In with Phone Number';
-
-    if (DOM.googleModalTitle) DOM.googleModalTitle.innerText = 'Sign In with Google';
-    if (DOM.googleModalSubtitle) DOM.googleModalSubtitle.innerText = 'Enter your Google account and password';
-    if (DOM.btnSubmitGoogle) DOM.btnSubmitGoogle.innerText = 'Sign In with Google';
-    if (DOM.googleNameContainer) DOM.googleNameContainer.classList.add('hidden');
-    if (DOM.googlePasswordLabel) DOM.googlePasswordLabel.innerHTML = 'Password <span style="color: #dc2626;">*</span>';
-    if (DOM.googlePassword) DOM.googlePassword.placeholder = 'Enter your password';
-
-    if (DOM.phoneModalTitle) DOM.phoneModalTitle.innerText = 'Sign In with Phone';
-    if (DOM.phoneModalSubtitle) DOM.phoneModalSubtitle.innerText = 'Enter your mobile number and password';
-    if (DOM.btnVerifyOtp) DOM.btnVerifyOtp.innerText = 'Verify & Sign In';
-    if (DOM.phoneNameContainer) DOM.phoneNameContainer.classList.add('hidden');
-    if (DOM.phonePasswordLabel) DOM.phonePasswordLabel.innerHTML = 'Password <span style="color: #dc2626;">*</span>';
-    if (DOM.phonePassword) DOM.phonePassword.placeholder = 'Enter your password';
 
     DOM.fieldUsernameContainer.classList.add('hidden');
     DOM.fieldConfirmContainer.classList.add('hidden');
@@ -506,29 +468,14 @@ function setAuthMode(mode) {
     DOM.tabSignIn.style.background = 'transparent';
     DOM.tabSignIn.style.color = '#50677b';
 
-    DOM.authTitle.innerText = 'Create your space';
+    DOM.authTitle.innerText = 'Create Account';
     DOM.authSubtitle.innerText = 'Join Aether Space to begin your journey.';
     DOM.dividerText.innerText = 'or create with email';
-    DOM.labelPassword.innerText = 'Create Password';
-    DOM.inputPassword.placeholder = 'Choose a password (min 4 chars)';
+    DOM.labelPassword.innerText = 'Create Password (min 8 chars)';
+    DOM.inputPassword.placeholder = 'Choose a password (min 8 chars)';
     DOM.btnAuthSubmitText.innerText = 'Create Account & Start Chat';
 
     if (DOM.googlePillLabel) DOM.googlePillLabel.innerText = 'Create with Google';
-    if (DOM.phonePillLabel) DOM.phonePillLabel.innerText = 'Create with Phone Number';
-
-    if (DOM.googleModalTitle) DOM.googleModalTitle.innerText = 'Create Account with Google';
-    if (DOM.googleModalSubtitle) DOM.googleModalSubtitle.innerText = 'Choose your display name, Gmail and password';
-    if (DOM.btnSubmitGoogle) DOM.btnSubmitGoogle.innerText = 'Create Account with Google';
-    if (DOM.googleNameContainer) DOM.googleNameContainer.classList.remove('hidden');
-    if (DOM.googlePasswordLabel) DOM.googlePasswordLabel.innerHTML = 'Create Password <span style="color: #dc2626;">*</span>';
-    if (DOM.googlePassword) DOM.googlePassword.placeholder = 'Choose a password (min 4 chars)';
-
-    if (DOM.phoneModalTitle) DOM.phoneModalTitle.innerText = 'Create Account with Phone';
-    if (DOM.phoneModalSubtitle) DOM.phoneModalSubtitle.innerText = 'Choose your name, phone and password';
-    if (DOM.btnVerifyOtp) DOM.btnVerifyOtp.innerText = 'Verify & Create Account';
-    if (DOM.phoneNameContainer) DOM.phoneNameContainer.classList.remove('hidden');
-    if (DOM.phonePasswordLabel) DOM.phonePasswordLabel.innerHTML = 'Create Password <span style="color: #dc2626;">*</span>';
-    if (DOM.phonePassword) DOM.phonePassword.placeholder = 'Choose a password (min 4 chars)';
 
     DOM.fieldUsernameContainer.classList.remove('hidden');
     DOM.fieldConfirmContainer.classList.remove('hidden');
@@ -560,19 +507,6 @@ DOM.btnTogglePassword.addEventListener('click', () => {
 DOM.btnOpenHelp.addEventListener('click', () => openModal(DOM.modalHelp));
 DOM.linkTerms.addEventListener('click', () => openModal(DOM.modalHelp));
 DOM.linkPrivacy.addEventListener('click', () => openModal(DOM.modalHelp));
-DOM.btnOpenGoogle.addEventListener('click', () => openModal(DOM.modalGoogle));
-DOM.btnOpenForgot.addEventListener('click', () => {
-  DOM.forgotEmail.value = DOM.inputEmail.value;
-  DOM.forgotFormSection.classList.remove('hidden');
-  DOM.forgotSuccessSection.classList.add('hidden');
-  hideForgotError();
-  openModal(DOM.modalForgot);
-});
-DOM.btnOpenPhone.addEventListener('click', () => {
-  DOM.phoneStep1.classList.remove('hidden');
-  DOM.phoneStep2.classList.add('hidden');
-  openModal(DOM.modalPhone);
-});
 
 // Fast Guest 1-Tap Entry
 if (DOM.btnFastGuest) {
@@ -582,7 +516,61 @@ if (DOM.btnFastGuest) {
   });
 }
 
-// 1. Email Auth Submit Handler
+// ============================================================================
+// Official Google Identity Services (OAuth 2.0) Handler
+// ============================================================================
+
+window.handleGoogleCredentialResponse = async function(response) {
+  if (!response || !response.credential) return;
+  audio.playHapticClick(450);
+  try {
+    const res = await fetch('/api/google-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || data.error || 'Google authentication failed');
+    }
+    if (DOM.modalGoogleInfo) closeModal(DOM.modalGoogleInfo);
+    audio.playChime(528, 1.2);
+    enterChatbot(data.user?.username || 'Google User', data.user?.email || '');
+  } catch (err) {
+    showAuthError(err.message || 'Google OAuth verification failed. Please try Email & Password.');
+  }
+};
+
+DOM.btnOpenGoogle.addEventListener('click', () => {
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    try {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          openModal(DOM.modalGoogleInfo);
+        }
+      });
+    } catch {
+      openModal(DOM.modalGoogleInfo);
+    }
+  } else {
+    openModal(DOM.modalGoogleInfo);
+  }
+});
+
+if (DOM.btnTriggerGsiPrompt) {
+  DOM.btnTriggerGsiPrompt.addEventListener('click', () => {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.google.accounts.id.prompt();
+    } else {
+      alert('Google Identity Services script is loading or blocked by browser extensions.');
+    }
+  });
+}
+
+// ============================================================================
+// Primary Email & Password Authentication Handler (Bcrypt & Min 8 Chars)
+// ============================================================================
+
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   DOM.authErrorBox.classList.add('hidden');
@@ -597,14 +585,14 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Password is strictly compulsory for both Sign In and Sign Up
+  // Enforce strict min 8 characters requirement
   if (!password) {
-    showAuthError('Password is compulsory. Please enter your password.');
+    showAuthError('Password is required. Please enter your password.');
     return;
   }
 
-  if (password.length < 4) {
-    showAuthError('Password must be at least 4 characters long.');
+  if (password.length < 8) {
+    showAuthError('Password must be at least 8 characters long for account security.');
     return;
   }
 
@@ -652,178 +640,113 @@ function showAuthError(msg) {
   DOM.authErrorBox.classList.remove('hidden');
 }
 
-// 2. Google Sign-In Form Handler
-DOM.formGoogle.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const name = DOM.googleName.value.trim() || 'Google User';
-  const email = DOM.googleEmail.value.trim().toLowerCase();
-  const password = DOM.googlePassword.value.trim();
+// ============================================================================
+// Secure Token-Verified Password Reset Flow
+// ============================================================================
 
-  if (!email) {
-    alert('Please enter your Google email.');
-    return;
-  }
-
-  if (!password) {
-    alert('Password is compulsory. Please enter your password.');
-    return;
-  }
-
-  if (password.length < 4) {
-    alert('Password must be at least 4 characters long.');
-    return;
-  }
-
-  audio.playHapticClick(450);
-  DOM.btnSubmitGoogle.disabled = true;
-  DOM.btnSubmitGoogle.innerText = state.authMode === 'signup' ? 'Creating Account...' : 'Signing In...';
-
-  try {
-    const res = await fetch('/api/google-auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.detail || data.error || 'Google authentication failed');
-    }
-    closeModal(DOM.modalGoogle);
-    audio.playChime(528, 1.2);
-    enterChatbot(data.user?.username || name, data.user?.email || email);
-  } catch (err) {
-    audio.playHapticClick(260);
-    alert(err.message || 'Google authentication failed. Please try again.');
-  } finally {
-    DOM.btnSubmitGoogle.disabled = false;
-    DOM.btnSubmitGoogle.innerText = state.authMode === 'signup' ? 'Create Account with Google' : 'Sign In with Google';
-  }
+DOM.btnOpenForgot.addEventListener('click', () => {
+  DOM.forgotEmail.value = DOM.inputEmail.value;
+  DOM.forgotStep1.classList.remove('hidden');
+  DOM.forgotStep2.classList.add('hidden');
+  DOM.forgotSuccessSection.classList.add('hidden');
+  if (DOM.forgotErrorMsg1) DOM.forgotErrorMsg1.classList.add('hidden');
+  if (DOM.forgotErrorMsg2) DOM.forgotErrorMsg2.classList.add('hidden');
+  openModal(DOM.modalForgot);
 });
 
-// 3. Phone Sign-In Flow Handler
-DOM.btnSendOtp.addEventListener('click', () => {
-  const phone = DOM.phoneNumber.value.trim();
-  const password = DOM.phonePassword.value.trim();
-
-  if (!phone || phone.length < 6) {
-    alert('Please enter a valid phone number.');
-    return;
-  }
-
-  if (!password) {
-    alert('Password is compulsory. Please enter your password before verification.');
-    return;
-  }
-
-  if (password.length < 4) {
-    alert('Password must be at least 4 characters long.');
-    return;
-  }
-
-  audio.playHapticClick(400);
-  const code = Math.floor(1000 + Math.random() * 9000).toString();
-  state.generatedOtp = code;
-  DOM.displayOtpCode.innerText = code;
-  DOM.phoneStep1.classList.add('hidden');
-  DOM.phoneStep2.classList.remove('hidden');
-});
-
-DOM.phoneStep2.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const enteredOtp = DOM.inputOtp.value.trim();
-  if (enteredOtp !== state.generatedOtp && enteredOtp !== '1234') {
-    alert(`Invalid verification code. Please enter: ${state.generatedOtp}`);
-    return;
-  }
-
-  const phone = DOM.phoneNumber.value.trim();
-  const name = DOM.phoneName.value.trim() || `User ${phone.slice(-4) || 'Phone'}`;
-  const password = DOM.phonePassword.value.trim();
-
-  DOM.btnVerifyOtp.disabled = true;
-  DOM.btnVerifyOtp.innerText = 'Verifying...';
-
-  try {
-    const res = await fetch('/api/phone-auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, name, password })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.detail || data.error || 'Phone authentication failed');
-    }
-    closeModal(DOM.modalPhone);
-    audio.playChime(528, 1.2);
-    enterChatbot(data.user?.username || name, data.user?.email || `phone_${phone}@mobile.user`);
-  } catch (err) {
-    audio.playHapticClick(260);
-    alert(err.message || 'Phone authentication failed. Please try again.');
-  } finally {
-    DOM.btnVerifyOtp.disabled = false;
-    DOM.btnVerifyOtp.innerText = state.authMode === 'signup' ? 'Verify & Create Account' : 'Verify & Sign In';
-  }
-});
-
-// 4. Forgot Password Reset Handler
-function showForgotError(msg) {
-  if (DOM.forgotErrorMsg) {
-    DOM.forgotErrorMsg.innerText = msg;
-    DOM.forgotErrorMsg.classList.remove('hidden');
-  } else {
-    alert(msg);
-  }
-}
-
-function hideForgotError() {
-  if (DOM.forgotErrorMsg) {
-    DOM.forgotErrorMsg.classList.add('hidden');
-  }
-}
-
-DOM.btnSendReset.addEventListener('click', async () => {
+// Step 1: Request 6-digit Code
+DOM.btnSendResetCode.addEventListener('click', async () => {
   const email = DOM.forgotEmail.value.trim().toLowerCase();
-  const newPassword = DOM.forgotNewPassword ? DOM.forgotNewPassword.value.trim() : '';
-
   if (!email) {
-    showForgotError('Please enter your email address');
-    return;
-  }
-
-  if (!newPassword || newPassword.length < 4) {
-    showForgotError('New password must be at least 4 characters long.');
+    if (DOM.forgotErrorMsg1) {
+      DOM.forgotErrorMsg1.innerText = 'Please enter your registered email address.';
+      DOM.forgotErrorMsg1.classList.remove('hidden');
+    }
     return;
   }
 
   audio.playHapticClick(420);
-  DOM.btnSendReset.disabled = true;
-  DOM.btnSendReset.innerText = 'Resetting Password...';
-  hideForgotError();
+  DOM.btnSendResetCode.disabled = true;
+  DOM.btnSendResetCode.innerText = 'Generating Secure Code...';
+  if (DOM.forgotErrorMsg1) DOM.forgotErrorMsg1.classList.add('hidden');
 
   try {
-    const res = await fetch('/api/reset-password', {
+    const res = await fetch('/api/forgot-password/request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, new_password: newPassword })
+      body: JSON.stringify({ email })
     });
-
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || data.error || 'Password reset failed');
+      throw new Error(data.detail || 'Could not initiate password reset.');
+    }
+
+    audio.playChime(528, 0.8);
+    DOM.forgotStep1.classList.add('hidden');
+    DOM.forgotStep2.classList.remove('hidden');
+  } catch (err) {
+    if (DOM.forgotErrorMsg1) {
+      DOM.forgotErrorMsg1.innerText = err.message;
+      DOM.forgotErrorMsg1.classList.remove('hidden');
+    }
+  } finally {
+    DOM.btnSendResetCode.disabled = false;
+    DOM.btnSendResetCode.innerText = 'Send 6-Digit Reset Code';
+  }
+});
+
+// Step 2: Verify Code and Update Password with Bcrypt
+DOM.btnVerifyAndReset.addEventListener('click', async () => {
+  const email = DOM.forgotEmail.value.trim().toLowerCase();
+  const code = DOM.forgotCode.value.trim();
+  const newPassword = DOM.forgotNewPassword.value.trim();
+
+  if (!code || code.length !== 6) {
+    if (DOM.forgotErrorMsg2) {
+      DOM.forgotErrorMsg2.innerText = 'Please enter the 6-digit code sent to your email / server audit log.';
+      DOM.forgotErrorMsg2.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (!newPassword || newPassword.length < 8) {
+    if (DOM.forgotErrorMsg2) {
+      DOM.forgotErrorMsg2.innerText = 'New password must be at least 8 characters long.';
+      DOM.forgotErrorMsg2.classList.remove('hidden');
+    }
+    return;
+  }
+
+  audio.playHapticClick(450);
+  DOM.btnVerifyAndReset.disabled = true;
+  DOM.btnVerifyAndReset.innerText = 'Verifying & Encrypting...';
+  if (DOM.forgotErrorMsg2) DOM.forgotErrorMsg2.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/forgot-password/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, new_password: newPassword })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Password reset failed. Invalid or expired code.');
     }
 
     audio.playChime(528, 1.2);
-    DOM.forgotSentMsg.innerText = `Password updated for ${email}. You can now sign in!`;
-    DOM.forgotFormSection.classList.add('hidden');
+    DOM.forgotStep2.classList.add('hidden');
     DOM.forgotSuccessSection.classList.remove('hidden');
 
     DOM.inputEmail.value = email;
     DOM.inputPassword.value = newPassword;
   } catch (err) {
-    showForgotError(err.message || 'Failed to reset password. Please check the email.');
+    if (DOM.forgotErrorMsg2) {
+      DOM.forgotErrorMsg2.innerText = err.message;
+      DOM.forgotErrorMsg2.classList.remove('hidden');
+    }
   } finally {
-    DOM.btnSendReset.disabled = false;
-    DOM.btnSendReset.innerText = 'Reset Password & Sign In';
+    DOM.btnVerifyAndReset.disabled = false;
+    DOM.btnVerifyAndReset.innerText = 'Verify & Update Password';
   }
 });
 
