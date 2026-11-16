@@ -358,6 +358,7 @@ body {
   margin-bottom: 8px;
   max-height: 380px;
   scroll-behavior: smooth;
+  position: relative;
 }
 
 @media (min-width: 640px) {

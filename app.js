@@ -883,12 +883,14 @@ async function loadChatHistory() {
 }
 
 // Render Messages to DOM
-function renderMessages() {
+function renderMessages(scrollMode = 'bottom') {
+  const previousScrollTop = DOM.messagesContainer.scrollTop;
   DOM.messagesContainer.innerHTML = '';
 
   state.messages.forEach((msg) => {
     const isUser = msg.role === 'user';
     const msgDiv = document.createElement('div');
+    msgDiv.id = msg.id;
     msgDiv.className = `flex flex-col ${isUser ? 'items-end' : 'items-start'} gap-1`;
 
     const bubble = document.createElement('div');
@@ -967,7 +969,24 @@ function renderMessages() {
     DOM.messagesContainer.appendChild(msgDiv);
   });
 
-  DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
+  if (scrollMode === 'preserve') {
+    DOM.messagesContainer.scrollTop = previousScrollTop;
+  } else if (typeof scrollMode === 'string' && scrollMode !== 'bottom') {
+    // When chatbot replies, smoothly stay at the top of the reply
+    const scrollToTarget = () => {
+      const targetEl = document.getElementById(scrollMode);
+      if (targetEl) {
+        DOM.messagesContainer.scrollTo({
+          top: Math.max(0, targetEl.offsetTop - 8),
+          behavior: 'smooth'
+        });
+      }
+    };
+    scrollToTarget();
+    requestAnimationFrame(scrollToTarget);
+  } else {
+    DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
+  }
 }
 
 // Speech Synthesis Helper
@@ -977,7 +996,7 @@ function handleSpeak(id, text) {
   if (state.speakingId === id) {
     window.speechSynthesis.cancel();
     state.speakingId = null;
-    renderMessages();
+    renderMessages('preserve');
     return;
   }
 
@@ -988,15 +1007,15 @@ function handleSpeak(id, text) {
   utterance.pitch = 1.0;
   utterance.onend = () => {
     state.speakingId = null;
-    renderMessages();
+    renderMessages('preserve');
   };
   utterance.onerror = () => {
     state.speakingId = null;
-    renderMessages();
+    renderMessages('preserve');
   };
 
   state.speakingId = id;
-  renderMessages();
+  renderMessages('preserve');
   window.speechSynthesis.speak(utterance);
 }
 
@@ -1004,10 +1023,10 @@ function handleSpeak(id, text) {
 function handleCopy(id, text) {
   navigator.clipboard.writeText(text);
   state.copiedId = id;
-  renderMessages();
+  renderMessages('preserve');
   setTimeout(() => {
     state.copiedId = null;
-    renderMessages();
+    renderMessages('preserve');
   }, 2000);
 }
 
@@ -1027,7 +1046,7 @@ async function sendMessage(textToSend) {
 
   state.messages.push(userMsg);
   DOM.chatMessageInput.value = '';
-  renderMessages();
+  renderMessages('bottom');
 
   state.isLoading = true;
   DOM.thinkingIndicator.classList.remove('hidden');
@@ -1074,7 +1093,12 @@ async function sendMessage(textToSend) {
   } finally {
     state.isLoading = false;
     DOM.thinkingIndicator.classList.add('hidden');
-    renderMessages();
+    const latestBotMsg = state.messages[state.messages.length - 1];
+    if (latestBotMsg && latestBotMsg.role === 'assistant') {
+      renderMessages(latestBotMsg.id);
+    } else {
+      renderMessages('bottom');
+    }
   }
 }
 
